@@ -21,10 +21,12 @@ app.use(cookieParser());
 
 //routes
 import userRouter from './routes/user.routes.js'
+import clubRouter from './routes/club.routes.js'
 
 
 //routes declaration //middleware
-app.use("/api/v1/users", userRouter)
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1", clubRouter);
 
 // http://localhost:8000/api/v1/users/register
 export {app}
