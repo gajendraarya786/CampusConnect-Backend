@@ -172,6 +172,46 @@ const postSchema = new mongoose.Schema({
   
 }, {timestamps: true});
 
+// Indexes for better query performance
+postSchema.index({ author: 1, createdAt: -1 });
+postSchema.index({ tags: 1 });
+postSchema.index({ category: 1, status: 1 });
+postSchema.index({ createdAt: -1 });
+postSchema.index({ likesCount: -1 });
+postSchema.index({ 'location.coordinates': '2dsphere' });
+
+// Virtual for engagement rate
+postSchema.virtual('engagementRate').get(function() {
+  if (this.views === 0) return 0;
+  return ((this.likesCount + this.commentsCount + this.sharesCount) / this.views * 100).toFixed(2);
+});
+
+// Pre-save middleware to update counters
+postSchema.pre('save', function(next) {
+  this.likesCount = this.likes.length;
+  this.commentsCount = this.comments.length;
+  this.sharesCount = this.shares.length;
+  
+  if (this.isModified() && !this.isNew) {
+    this.updatedAt = Date.now();
+  }
+  
+  next();
+});
+
+// Static method to find popular posts
+postSchema.statics.findPopular = function(limit = 10) {
+  return this.find({ status: 'active', visibility: 'public' })
+    .sort({ likesCount: -1, commentsCount: -1, views: -1 })
+    .limit(limit)
+    .populate('author', 'username avatar');
+};
+
+// Instance method to check if user liked the post
+postSchema.methods.isLikedBy = function(userId) {
+  return this.likes.some(like => like.user.toString() === userId.toString());
+};
+
 const Post = mongoose.model('Post', postSchema);
 
 export {Post}
