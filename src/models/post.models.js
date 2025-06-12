@@ -1,5 +1,5 @@
 import mongoose, { mongo } from "mongoose";
-import { User } from "./user.models";
+import { User } from "./user.models.js";
 
 const postSchema = new mongoose.Schema({
     title: {
