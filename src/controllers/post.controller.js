@@ -82,7 +82,45 @@ const getPosts = async (req, res, next) => {
     next(error);
   }
 };
+const togglePostLike = async (req, res, next) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user?._id;
 
-export {createPost, getPosts};
+    if (!userId) {
+      throw new ApiError(401, 'Unauthorized');
+    }
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      throw new ApiError(404, 'Post not found');
+    }
+
+    const isLiked = post.likes.some(like => like.user.toString() === userId.toString());
+
+    if (req.method === 'POST') { // Like action
+      if (isLiked) {
+        throw new ApiError(409, 'Post already liked');
+      }
+      post.likes.push({ user: userId, likedAt: new Date() });
+    } else if (req.method === 'DELETE') { // Unlike action
+      if (!isLiked) {
+        throw new ApiError(409, 'Post not liked yet');
+      }
+      post.likes = post.likes.filter(like => like.user.toString() !== userId.toString());
+    }
+
+    await post.save();
+
+    return res.status(200).json(
+      new ApiResponse(200, { likes: post.likes.length }, 'Like status updated successfully')
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export {createPost, getPosts, togglePostLike};
 
 

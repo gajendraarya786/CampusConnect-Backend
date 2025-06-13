@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createPost, getPosts } from "../controllers/post.controller.js";
+import { createPost, getPosts, togglePostLike } from "../controllers/post.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import { verifyAccessToken } from "../middlewares/auth.middleware.js";
 
@@ -14,5 +14,7 @@ router.route('/').post(
     createPost
 );
 router.route('/').get(verifyAccessToken, getPosts);
+router.route('/:postId/like').post(verifyAccessToken, togglePostLike);
+router.route('/:postId/unlike').delete(verifyAccessToken, togglePostLike);
 
 export default router;
