@@ -2,7 +2,7 @@ import { Router } from "express";
 import { loginUser, registerUser, getUserProfile, getUserById } from "../controllers/user.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import { verifyAccessToken } from "../middlewares/auth.middleware.js";
-import { getClubs } from "../controllers/club.controller.js";
+
 
 const router = Router();
 
@@ -27,3 +27,6 @@ router.route("/:id").get(getUserById);
 
 
 export default router;
+
+
+
