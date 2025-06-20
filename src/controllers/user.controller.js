@@ -172,9 +172,64 @@ const getUserById = async (req, res, next) => {
   }
 };
 
+const sendFriendRequest = async(req, res) => {
+
+    const {toUserId} = req.body;
+    const {fromUserId} = req.user._id;
+
+    if(String(toUserId) === String(fromUserId)){
+      throw new ApiError(401, "You can't send request to yourself")
+    }
+
+    //Check if already friends or request exists
+    const toUser = await User.findById(toUserId);
+    if(!toUser){
+      throw new ApiError(404, 'User not found');
+    }
+
+    const alreadyRequested = toUser.friendRequests.some(
+    req => String(req.from) === String(fromUserId) && req.status === 'pending'
+    );
+   if (alreadyRequested) return res.status(400).json({ message: "Request already sent." });
+   
+   toUser.friendRequests.push({from: fromUserId});
+   await toUser.save();
+
+   return res.status(200)
+   .json(new ApiResponse(200, 'Friend request sent'))
+};
+
+const respondToFriendRequest = async(req, res) => {
+    const {fromUserId, action} = req.body;
+    const toUserId = req.user._id;
+
+    const user =  await User.findById(toUserId);
+    const request = user.friendRequests.find(
+      req => req.from.toString() === fromUserId && req.status === 'pending'
+    );
+
+    if(!request){
+      throw new ApiError(404, "Request not found");
+    }
+    request.status = action === 'accept' ? 'accepted' : 'declined';
+    
+    if(action == 'accept'){
+      user.friends.push(fromUserId);
+      const fromUser = await User.findById(fromUserId);
+      fromUser.friends.push(toUserId);
+      await fromUser.save();
+    }
+    await user.save();
+
+    res.status(200)
+    .json(new ApiResponse(200, `Request ${action}ed`))
+};
+
 export {
   registerUser,
   loginUser,
-  getUserProfile, // ✅ Add this
-  getUserById
+  getUserProfile, 
+  getUserById,
+  sendFriendRequest,
+  respondToFriendRequest
 };
