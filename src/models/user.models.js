@@ -78,6 +78,18 @@ const userSchema = new mongoose.Schema({
         from:{type: mongoose.Schema.Types.ObjectId, ref: "User"},
         status: {type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending'}
     }],
+    projects: [{
+        project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+        role: String,
+        joinedAt: { type: Date, default: Date.now }
+    }],
+    interests: {
+        type: [String], // for project recommendations
+    },
+    portfolio: {
+        type: String,
+    },
+
     password: {
         type: String,
         required: [true, "Password is required"],
