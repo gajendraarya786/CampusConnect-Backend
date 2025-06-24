@@ -150,4 +150,12 @@ const deleteMyRoommateProfile = async(req, res) => {
     }catch(err){
         throw new ApiError(500, "Error occured ", err);
     }
+};
+
+export {
+    saveRoommateProfile,
+    getMyRoommateProfile,
+    getAllRoommateProfile,
+    getRoommateProfileById,
+    deleteMyRoommateProfile
 }
