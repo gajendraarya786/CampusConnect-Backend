@@ -52,9 +52,8 @@ const RoommateProfileSchema = new mongoose.Schema({
      required: true,
   },
   budget: {
-    min: Number,
-    max: Number,
-    required: true,
+    min: { type: Number, required: true },
+    max: { type: Number, required: true }
   },
   sleepSchedule: {
     type: String,

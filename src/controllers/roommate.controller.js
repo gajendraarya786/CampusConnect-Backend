@@ -1,6 +1,6 @@
 import { Roommate } from "../models/roommateProfile.models.js";
 import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const saveRoommateProfile = async(req, res) => {
     try{
@@ -63,7 +63,7 @@ const saveRoommateProfile = async(req, res) => {
            .json(new ApiResponse(200, profile, "Profile updated successfully"));
         } 
         else{
-            profile = new Roommate({
+           const newProfile = new Roommate({
                 user: userId,
                 gender,
                 email,
@@ -89,9 +89,9 @@ const saveRoommateProfile = async(req, res) => {
                 additionalNotes
             });
 
-            await profile.save();
+            await newProfile.save();
             return res.status(200)
-            .json(new ApiResponse(200, profile, "Profile created successfully"));
+            .json(new ApiResponse(200, newProfile, "Profile created successfully"));
         }
 
     }catch(err){
@@ -106,9 +106,10 @@ const getMyRoommateProfile = async(req, res) => {
        if(!profile){
         throw new ApiError(404, 'Failed to fetch Roommate Profile');
        }
+       res.status(200).json(new ApiResponse(200, profile, "Profile fetched successfully"));
 
     }catch(err){
-        res.status(404, "Some error occured while fetching profile", err);
+        res.status(404).json({message: "Some error occured while fetching the profile", err});
     }
 };
 
@@ -152,10 +153,86 @@ const deleteMyRoommateProfile = async(req, res) => {
     }
 };
 
+ const getRoommateMatches = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const myProfile = await Roommate.findOne({ user: userId });
+    if (!myProfile) {
+        throw new ApiError(400, "Create your roommate profile first");
+    }
+    
+    //Hard Filters
+
+    const hardFilters = {
+        user: {$ne: userId},
+        gender: myProfile.preferredGender === 'Any' ? { $exists: true } : myProfile.preferredGender,
+        preferredRoomType: myProfile.preferredRoomType,
+        preferredGender: myProfile.preferredGender,
+        preferredAccomodationType: myProfile.preferredAccomodationType,
+        'budget.min': { $lte: myProfile.budget.max },
+        'budget.max': { $gte: myProfile.budget.min }
+    };
+
+    let candidates = await Roommate.find(hardFilters).populate('user', 'fullname email');
+
+     // 3. Score each candidate based on soft filters
+    const scoredCandidates = candidates.map(candidate => {
+      let score = 0;
+
+      // Soft filters: add points for each match
+      if (candidate.sleepSchedule === myProfile.sleepSchedule) score += 2;
+      if (candidate.cleanliness === myProfile.cleanliness) score += 2;
+      if (candidate.diet === myProfile.diet) score += 1;
+      if (candidate.smoking === myProfile.smoking) score += 1;
+      if (candidate.alcohol === myProfile.alcohol) score += 1;
+      if (candidate.personalityType === myProfile.personalityType) score += 1;
+      if (candidate.talkativeness === myProfile.talkativeness) score += 1;
+      if (candidate.noiseTolerance === myProfile.noiseTolerance) score += 1;
+      if (candidate.socialWithRoommate === myProfile.socialWithRoommate) score += 1;
+      if (candidate.prefferedAccomodationType === myProfile.prefferedAccomodationType) score += 1;
+      if (candidate.preferredRoomType === myProfile.preferredRoomType) score += 1;
+
+      // Hobbies overlap (soft match)
+      if (myProfile.hobbies && candidate.hobbies) {
+        const myHobbies = Array.isArray(myProfile.hobbies) ? myProfile.hobbies : [myProfile.hobbies];
+        const candidateHobbies = Array.isArray(candidate.hobbies) ? candidate.hobbies : [candidate.hobbies];
+        const commonHobbies = myHobbies.filter(hobby => candidateHobbies.includes(hobby));
+        score += commonHobbies.length; // 1 point per common hobby
+      }
+
+      // Deal breakers: if any of my dealBreakers are present in candidate, set score to -1000 (exclude)
+      if (myProfile.dealBreakers && candidate.dealBreakers) {
+         const hasDealBreaker = myProfile.dealBreakers.some(db => candidate.dealBreakers.includes(db));
+      if (hasDealBreaker) score = -1000;
+    }
+
+      return { candidate, score };
+    });
+
+    //filtering out candidates with negative score
+     const filtered = scoredCandidates.filter(item => item.score >= 0);
+
+     //sorting score in descending order
+     filtered.sort((a, b) => b.score - a.score);
+
+    // 6. Return only the candidate profiles, with score
+    const matches = filtered.map(item => ({
+      profile: item.candidate,
+      matchScore: item.score
+    }));
+
+    res.json(matches);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export {
     saveRoommateProfile,
     getMyRoommateProfile,
     getAllRoommateProfile,
     getRoommateProfileById,
-    deleteMyRoommateProfile
+    deleteMyRoommateProfile,
+    getRoommateMatches
 }
