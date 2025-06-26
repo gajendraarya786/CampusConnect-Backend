@@ -8,6 +8,7 @@ const RoommateProfileSchema = new mongoose.Schema({
     gender: {
        type: String,
        enum: ['male', 'female', 'other'],
+       lowercase: true,
        required: true,
     },
      email: {
@@ -38,7 +39,8 @@ const RoommateProfileSchema = new mongoose.Schema({
   },
    preferredGender: {
     type: String,
-    enum: ['Male', 'Female', 'Any'],
+    enum: ['male', 'female', 'any'],
+    lowercase: true,
     default: 'Any',
     required: true,
   },

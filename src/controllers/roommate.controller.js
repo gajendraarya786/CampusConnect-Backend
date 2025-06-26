@@ -95,8 +95,10 @@ const saveRoommateProfile = async(req, res) => {
         }
 
     }catch(err){
-         throw new ApiError(404, 'Something went wrong', err); 
-    }
+    console.error('Roommate profile save error:', err);
+    res.status(500).json({ message: 'Something went wrong', error: err.message, stack: err.stack });
+   } 
+
 };
 
 const getMyRoommateProfile = async(req, res) => {
@@ -126,7 +128,7 @@ const getAllRoommateProfile = async(req, res) => {
 const getRoommateProfileById = async(req, res) => {
      try {
         const { id } = req.params;
-        const profile = await Roommate.findById(id);
+        const profile = await Roommate.findById(id).populate('user', 'fullname email');
         if(!profile){
             throw new ApiError(404, "Profile not found");
         }
@@ -152,34 +154,37 @@ const deleteMyRoommateProfile = async(req, res) => {
         throw new ApiError(500, "Error occured ", err);
     }
 };
-
- const getRoommateMatches = async (req, res) => {
+const getRoommateMatches = async (req, res) => {
   try {
     const userId = req.user._id;
     const myProfile = await Roommate.findOne({ user: userId });
     if (!myProfile) {
-        throw new ApiError(400, "Create your roommate profile first");
+      throw new ApiError(400, "Create your roommate profile first");
     }
-    
-    //Hard Filters
 
+    // Only exclude self and (optionally) filter by gender
     const hardFilters = {
-        user: {$ne: userId},
-        gender: myProfile.preferredGender === 'Any' ? { $exists: true } : myProfile.preferredGender,
-        preferredRoomType: myProfile.preferredRoomType,
-        preferredGender: myProfile.preferredGender,
-        preferredAccomodationType: myProfile.preferredAccomodationType,
-        'budget.min': { $lte: myProfile.budget.max },
-        'budget.max': { $gte: myProfile.budget.min }
+      user: { $ne: userId },
+      gender: myProfile.preferredGender
     };
+    // If user has a strong gender preference, add it
+     if (
+      myProfile.preferredGender &&
+      myProfile.preferredGender.toLowerCase() !== 'any'
+    ) {
+      hardFilters.gender = myProfile.preferredGender.toLowerCase();
+    }
 
     let candidates = await Roommate.find(hardFilters).populate('user', 'fullname email');
+    console.log('Candidates:', candidates);
 
-     // 3. Score each candidate based on soft filters
+    // Score each candidate based on soft filters
     const scoredCandidates = candidates.map(candidate => {
       let score = 0;
 
       // Soft filters: add points for each match
+      if (candidate.preferredRoomType === myProfile.preferredRoomType) score += 2;
+      if (candidate.prefferedAccomodationType === myProfile.prefferedAccomodationType) score += 2;
       if (candidate.sleepSchedule === myProfile.sleepSchedule) score += 2;
       if (candidate.cleanliness === myProfile.cleanliness) score += 2;
       if (candidate.diet === myProfile.diet) score += 1;
@@ -189,8 +194,6 @@ const deleteMyRoommateProfile = async(req, res) => {
       if (candidate.talkativeness === myProfile.talkativeness) score += 1;
       if (candidate.noiseTolerance === myProfile.noiseTolerance) score += 1;
       if (candidate.socialWithRoommate === myProfile.socialWithRoommate) score += 1;
-      if (candidate.prefferedAccomodationType === myProfile.prefferedAccomodationType) score += 1;
-      if (candidate.preferredRoomType === myProfile.preferredRoomType) score += 1;
 
       // Hobbies overlap (soft match)
       if (myProfile.hobbies && candidate.hobbies) {
@@ -202,20 +205,20 @@ const deleteMyRoommateProfile = async(req, res) => {
 
       // Deal breakers: if any of my dealBreakers are present in candidate, set score to -1000 (exclude)
       if (myProfile.dealBreakers && candidate.dealBreakers) {
-         const hasDealBreaker = myProfile.dealBreakers.some(db => candidate.dealBreakers.includes(db));
-      if (hasDealBreaker) score = -1000;
-    }
+        const hasDealBreaker = myProfile.dealBreakers.some(db => candidate.dealBreakers.includes(db));
+        if (hasDealBreaker) score = -1000;
+      }
 
       return { candidate, score };
     });
 
-    //filtering out candidates with negative score
-     const filtered = scoredCandidates.filter(item => item.score >= 0);
+    // Filter out candidates with negative score
+    const filtered = scoredCandidates.filter(item => item.score >= 0);
 
-     //sorting score in descending order
-     filtered.sort((a, b) => b.score - a.score);
+    // Sort by score descending
+    filtered.sort((a, b) => b.score - a.score);
 
-    // 6. Return only the candidate profiles, with score
+    // Return only the candidate profiles, with score
     const matches = filtered.map(item => ({
       profile: item.candidate,
       matchScore: item.score
