@@ -1,6 +1,7 @@
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from '../models/user.models.js';
+import { Message } from "../models/message.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 // Token generation helper
@@ -225,11 +226,52 @@ const respondToFriendRequest = async(req, res) => {
     .json(new ApiResponse(200, `Request ${action}ed`))
 };
 
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, "_id fullname username avatar"); // select only needed fields
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+};
+
+const getChatHistory = async(req, res) => {
+    try {
+       const {userId, otherUserId} = req.query;
+       if(!userId || !otherUserId){
+          throw new ApiError(400, "userId and otherUserId are required");
+       }
+       const messages = await Message.find({
+        $or: [
+          {from: userId, to: otherUserId},
+          {from: otherUserId, to: userId}
+        ]
+       }).sort({timestamp: 1});
+       res.json(messages)
+    } catch (err) {
+       throw new ApiError(500, "Failed to fetch chat history", err);
+    }
+};
+const searchUsers = async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.json([]);
+  const users = await User.find({
+    $or: [
+      { fullname: { $regex: q, $options: "i" } },
+      { username: { $regex: q, $options: "i" } }
+    ]
+  }, "_id fullname username avatar");
+  res.json(users);
+};
+
 export {
   registerUser,
   loginUser,
   getUserProfile, 
   getUserById,
   sendFriendRequest,
-  respondToFriendRequest
+  respondToFriendRequest,
+  getAllUsers,
+  searchUsers,
+  getChatHistory
 };

@@ -1,5 +1,14 @@
 import { Router } from "express";
-import { loginUser, registerUser, getUserProfile, getUserById, sendFriendRequest, respondToFriendRequest } from "../controllers/user.controller.js";
+import { loginUser, 
+         registerUser, 
+         getUserProfile, 
+         getUserById, 
+         sendFriendRequest, 
+         respondToFriendRequest, 
+         getAllUsers,
+         getChatHistory, 
+         searchUsers}
+        from "../controllers/user.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import { verifyAccessToken } from "../middlewares/auth.middleware.js";
 
@@ -20,16 +29,19 @@ router.route("/login").post(loginUser);
 
 // Logged-in user's own profile (protected)
 router.route("/profile").get(verifyAccessToken, getUserProfile);
+router.route("/all").get(verifyAccessToken, getAllUsers);
+
+//search users
+router.route("/search").get(verifyAccessToken, searchUsers)
 
 router.route("/friend-request").post(verifyAccessToken, sendFriendRequest);
 router.route("/respond-friend-request").post(verifyAccessToken, respondToFriendRequest);
 
+//Chat route
+router.route("/chat-history").get(verifyAccessToken, getChatHistory);
+
 // Public profile by user ID (open)
 router.route("/:id").get(getUserById);
-
-
-
-
 
 export default router;
 
