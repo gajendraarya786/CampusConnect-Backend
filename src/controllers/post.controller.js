@@ -125,6 +125,41 @@ const togglePostLike = async (req, res, next) => {
   }
 };
 
-export {createPost, getPosts, togglePostLike};
+const addComment = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content } = req.body;
+    const userId = req.user._id;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ message: 'Comment content is required.' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found.' });
+
+    const comment = {
+      user: userId, 
+      content,
+      createdAt: new Date()
+    };
+
+    post.comments = post.comments || [];
+    post.comments.push(comment);
+    await post.save();
+
+    // Populate user for response
+    const populatedComment = await Post.findOne(
+      { _id: postId },
+      { comments: { $slice: -1 } }
+    ).populate('comments.user', 'fullname avatar');
+
+    res.status(201).json({ data: populatedComment.comments[0] });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export {createPost, getPosts, togglePostLike, addComment};
 
 
