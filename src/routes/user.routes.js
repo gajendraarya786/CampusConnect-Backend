@@ -3,6 +3,7 @@ import { loginUser,
          registerUser, 
          getUserProfile, 
          getUserById, 
+         updateProfile,
          sendFriendRequest, 
          respondToFriendRequest, 
          getAllUsers,
@@ -29,6 +30,14 @@ router.route("/login").post(loginUser);
 
 // Logged-in user's own profile (protected)
 router.route("/profile").get(verifyAccessToken, getUserProfile);
+router.route("/profile").patch(
+  verifyAccessToken,
+  upload.fields([
+    { name: 'avatar', maxCount: 1 },
+    { name: 'coverImage', maxCount: 1 }
+  ]),
+  updateProfile 
+);
 router.route("/all").get(verifyAccessToken, getAllUsers);
 
 //search users

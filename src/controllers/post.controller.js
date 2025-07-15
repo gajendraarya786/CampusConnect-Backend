@@ -78,7 +78,7 @@ const getPosts = async (req, res, next) => {
     const filter = {};
     if(userId) filter.author = userId;
 
-    const posts = await Post.find(filter).populate('author', ' username avatar').sort({ createdAt: -1 });
+    const posts = await Post.find(filter).populate('author', ' fullname username avatar').sort({ createdAt: -1 });
     return res.status(200).json(
       new ApiResponse(200, posts, 'Posts fetched successfully')
     );

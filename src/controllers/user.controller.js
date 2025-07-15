@@ -155,6 +155,32 @@ const getUserProfile = async (req, res, next) => {
   }
 };
 
+
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const update = { ...req.body };
+
+    // If files are uploaded, set their URLs
+    if (req.files && req.files.avatar) {
+      update.avatar = req.files.avatar[0].path; // or your cloud URL
+    }
+    if (req.files && req.files.coverImage) {
+      update.coverImage = req.files.coverImage[0].path;
+    }
+
+    // If skills is a string, convert to array
+    if (typeof update.skills === 'string') {
+      update.skills = update.skills.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    const user = await User.findByIdAndUpdate(userId, update, { new: true });
+    res.json({ success: true, data: user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // Public profile by user ID
 const getUserById = async (req, res, next) => {
   try {
@@ -268,6 +294,7 @@ export {
   registerUser,
   loginUser,
   getUserProfile, 
+  updateProfile,
   getUserById,
   sendFriendRequest,
   respondToFriendRequest,
