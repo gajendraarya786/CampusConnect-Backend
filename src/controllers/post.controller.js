@@ -86,6 +86,25 @@ const getPosts = async (req, res, next) => {
     next(error);
   }
 };
+
+const deletePost = async(req, res, next) => {
+   try {
+     const {postId} = req.params;
+     const userId = req.user._id;
+
+     const post = await Post.findById(postId);
+     if(!post){
+       throw new ApiError('404', "Post not found");
+     }
+     if(post.author.toString() !== userId.toString()){
+       throw new ApiError(403, "Not authorized to delete the post");
+     }
+     await post.deleteOne();
+     return res.status(200).json(new ApiResponse(200, null, "Post deleted successfully"));
+   } catch (err) {
+      next(err)
+   }
+}
 const togglePostLike = async (req, res, next) => {
   try {
     const { postId } = req.params;
@@ -160,6 +179,62 @@ const addComment = async (req, res) => {
   }
 };
 
-export {createPost, getPosts, togglePostLike, addComment};
+const getComments = async (req, res, next) => {
+  try {
+    const { postId } = req.params;
+    const post = await Post.findById(postId)
+      .populate('comments.user', 'fullname avatar')
+      .select('comments');
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found.' });
+    }
+
+    // Optionally sort comments by createdAt (if needed)
+    const sortedComments = (post.comments || []).sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+    );
+
+    res.status(200).json({ data: sortedComments });
+  } catch (err) {
+    next(err);
+  }
+};
+ 
+const deleteComment = async(req, res, next) => {
+  try{
+   const {postId, commentId} = req.params;
+   const userId = req.user._id;
+
+   const post = await Post.findById(postId);
+   if(!post){
+      throw new ApiError(404, "Post not found")
+   }
+   const comment = post.comments.id(commentId);
+   if(!comment) {
+      throw new ApiError(404, "Comment not found");
+   }
+
+   if(comment.user.toString() !== userId.toString()){
+      throw new ApiError(404, "Not authorized to delete this comment");
+   }
+   await comment.deleteOne();
+   await post.save();
+
+   return res.status(200).json(new ApiResponse(200, null, "Comment deleted successfully"));
+}
+   catch(err){
+     next(err);
+   }
+} 
+
+export {createPost, 
+        getPosts, 
+        deletePost,
+        togglePostLike, 
+        addComment, 
+        getComments,
+        deleteComment
+      };
 
 

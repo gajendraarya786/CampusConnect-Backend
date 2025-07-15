@@ -8,7 +8,9 @@ import { loginUser,
          respondToFriendRequest, 
          getAllUsers,
          getChatHistory, 
-         searchUsers}
+         searchUsers,
+         deleteChat
+        }
         from "../controllers/user.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import { verifyAccessToken } from "../middlewares/auth.middleware.js";
@@ -41,13 +43,14 @@ router.route("/profile").patch(
 router.route("/all").get(verifyAccessToken, getAllUsers);
 
 //search users
-router.route("/search").get(verifyAccessToken, searchUsers)
+router.route("/").get(verifyAccessToken, searchUsers)
 
 router.route("/friend-request").post(verifyAccessToken, sendFriendRequest);
 router.route("/respond-friend-request").post(verifyAccessToken, respondToFriendRequest);
 
 //Chat route
 router.route("/chat-history").get(verifyAccessToken, getChatHistory);
+router.route("/chat-history/:otherUserId").delete(verifyAccessToken, deleteChat);
 
 // Public profile by user ID (open)
 router.route("/:id").get(getUserById);
