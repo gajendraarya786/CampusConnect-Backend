@@ -3,13 +3,21 @@ import { Message } from "../models/message.model.js";
 
 function setupSocket(server) {
      const io = new Server(server, {
-        cors: {
-            origin: [process.env.CORS_ORIGIN, 
-                "https://campus-connect-dun-alpha.vercel.app",
-                "http://localhost:5173"],
-            methods: ["GET", "POST"],
-            credentials: true,
-        }
+       cors: {
+        origin: (origin, callback) => {
+       const allowed = [
+      "http://localhost:5173",
+      "https://campus-connect-dun-alpha.vercel.app"
+    ];
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}
+
      });
      
      io.on('connection', (socket) => {
