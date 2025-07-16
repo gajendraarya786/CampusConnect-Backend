@@ -13,7 +13,9 @@ function setupSocket(server) {
      });
      
      io.on('connection', (socket) => {
-        console.log('User connected:', socket.id);
+         
+         console.log('Origin:', socket.handshake.headers.origin);
+         console.log('User connected:', socket.id);
         
         socket.on('joinRoom', ({userId, otherUserId}) => {
             console.log('joinRoom:', { userId, otherUserId });
