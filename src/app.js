@@ -4,17 +4,24 @@ import cookieParser from 'cookie-parser';
 
 const app = express()
 
+
 const allowedOrigins = [
   "http://localhost:5173",
   "https://campus-connect-ten-omega.vercel.app"
 ];
 
-
 app.use(cors({
-    origin: allowedOrigins,
-    credentials: true
-}))
-
+  origin: function(origin, callback) {
+    // allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 //to set limit for incoming data files in json format
 app.use(express.json({limit: "16kb"}));
 
