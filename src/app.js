@@ -7,7 +7,7 @@ const app = express()
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://campus-connect-ten-omega.vercel.app"
+  "https://campus-connect-vert-nine.vercel.app"
 ];
 
 app.use(cors({
