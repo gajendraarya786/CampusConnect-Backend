@@ -4,8 +4,14 @@ import cookieParser from 'cookie-parser';
 
 const app = express()
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://campus-connect-ten-omega.vercel.app"
+];
+
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173/',
+    origin: allowedOrigins,
     credentials: true
 }))
 
